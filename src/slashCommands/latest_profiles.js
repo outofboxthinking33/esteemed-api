@@ -1,13 +1,18 @@
 const qs = require('query-string')
 const axios = require('axios')
+<<<<<<< HEAD
 const api = require('./../util/api')()
 const { profilesRef } = require('./../util/firebase')
+=======
+const profiles = require('./../util/userProfiles')
+>>>>>>> upstream/master
 
 exports.handler = async event => {
   const payload = qs.parse(event.body)
 
   delayResponse(payload)
 
+<<<<<<< HEAD
   return {statusCode: 200, body: "Collecting info..."}
 
 }
@@ -44,10 +49,14 @@ const getUser = userId => {
       user: userId
     }
   }).then( ({data}) => data )
+=======
+  return { statusCode: 200, body: "Loading 10 most current profiles..." }
+>>>>>>> upstream/master
 }
 
 const delayResponse = async payload => {
   try {
+<<<<<<< HEAD
 
     const usersPromise = loadUsers()
     const profilesPromise = allProfiles()
@@ -130,6 +139,13 @@ const delayResponse = async payload => {
 
     var errMsg = {
       "blocks": [
+=======
+    const currentUser = await profiles.loadUsers()
+      .then(users => users.find(user => user.id == payload.user_id))
+
+    var msg = {
+      "blocks": [
+>>>>>>> upstream/master
         {
           "type": "section",
           "text": {
@@ -140,14 +156,74 @@ const delayResponse = async payload => {
       ]
     }
 
+<<<<<<< HEAD
     axios.post(process.env.SLACK_SLASH_COMMAND_HOOK, errMsg, { headers: {'Content-Type': 'application/json'}})
 
     return
 
 
+=======
+    if (currentUser.is_admin || currentUser.is_owner) {
+      const allProfiles = await profiles.allProfiles()
+      const latestProfilesKeys = Object.keys(allProfiles).slice(0, 10)
+
+      msg.blocks = await Promise.all(latestProfilesKeys.map(async (item) => {
+        try {
+          return profiles.getUser(item)
+            .then(requestedUser => {
+              if (requestedUser.ok) {
+                let text = profiles.format(requestedUser.user.profile)
+
+                if (allProfiles[item].hasOwnProperty('drupal_profile')) {
+                  // text += "\n" + "<" + allProfiles[item].drupal_profile + "|" + allProfiles[item].drupal_bio + ">"
+                }
+
+                if (allProfiles[item].hasOwnProperty('wp_profile')) {
+                  // text += "\n" + "<" + allProfiles[item].wp_profile + "|" + allProfiles[item].wp_bio + ">"
+                }
+
+                return {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": text
+                  },
+                  "accessory": {
+                    "type": "image",
+                    "image_url": requestedUser.user.profile.image_48,
+                    "alt_text": requestedUser.user.profile.real_name
+                  }
+                }
+
+                //acc.push()
+              }
+            })
+        } catch (err) { throw err }
+      }))
+      .then(blocks => blocks.flatMap((v, i, a) => a.length - 1 !== i ? [v, { "type": "divider" }] : v))
+    }
+    else {
+      msg.blocks = {
+        "type": "section",
+        "text": {
+          "type": "mrkdwn",
+          "text": "Only admins or owners can use this command"
+        }
+      }
+    }
+
+    //console.log(msg.blocks)
+    axios.post(process.env.SLACK_SLASH_COMMAND_HOOK, msg, { headers: { 'Content-Type': 'application/json' } })
+
+    return
+>>>>>>> upstream/master
   } catch (e) {
     console.log(e)
 
     return { statusCode: 400, body: JSON.stringify(e) }
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> upstream/master
